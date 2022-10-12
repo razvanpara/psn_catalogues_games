@@ -1,7 +1,7 @@
 import { getPlaystationGames } from "./ps-dot-com/catalogue.mjs";
 import fs from "fs";
 import _ from "lodash";
-import { diffArrays, diffChars, Change } from "diff";
+import { diffArrays, diffChars, Change, ArrayChange } from "diff";
 
 const outputDir = "results";
 const contemporaryCataloguePath = `${outputDir}/games_psplus_games_catalogue.txt`;
@@ -9,28 +9,25 @@ const classicsCataloguePath = `${outputDir}/games_psplus_classics_catalogue.txt`
 const contemporaryHtmlPath = `${outputDir}/games_psplus_games_catalogue.html`;
 const classicsHtmlPath = `${outputDir}/games_psplus_classics_catalogue.html`;
 
-function groupArrayByLetter(array:Array<string | null>)
-{
-    return _.groupBy(array, e => _.first(e))
-};
 
-function prettyJSON(obj:object)
+function getColouredSpans(items: Array<string | null>, color:string = "gray"): Array<{value:string, html:string}>
 {
-    return JSON.stringify(obj, null, 2)
-};
-
-function getColouredSpans(change: Change): string
-{
-    let color = null;
-    if(change.added || change.removed)
-        color = change.added ? "green" : "red";
-    return color ? `<span style='color:${color}'>${change.value}</span>` : change.value;
+    return items.map(e => ({value: e?e:"" ,html:`<div style="margin:5px;"><span style='color:${color}'>${e}</span></div>`}));
 }
 
-function getDifferencesHtml(oldText:string, newText:string)
+function getDifferencesHtml(oldText:Array<string | null>, newText:Array<string | null>)
 {
-    const differences = diffChars(oldText, newText).map(getColouredSpans);
-    return `<html><body style='background-color:black;color:gray;'>${differences.join("").replaceAll("\n","<br>")}</body></html>`;
+    const added = newText.filter(itm => !oldText.includes(itm)).map(itm => `${itm} +++`);
+    const removed = oldText.filter(itm => !newText.includes(itm)).map(itm => `${itm} ---`);
+    const unchanged = newText.filter(itm => oldText.includes(itm));
+    const output = [
+        ...getColouredSpans(unchanged),
+        ...getColouredSpans(removed, "red"),
+        ...getColouredSpans(added, "green")
+    ].sort((x,y)=>x.value.localeCompare(y.value))
+    .map(x=>x.html)
+    .join("");
+    return `<html><body style='background-color:black;color:gray;'><div style="display:flex;flex-flow: column wrap;max-height:100%;">${output}</div></body></html>`;
 }
 
 async function writeFile(path:string, content:string)
@@ -40,17 +37,17 @@ async function writeFile(path:string, content:string)
     });
 }
 
-const oldContemporary = fs.readFileSync(contemporaryCataloguePath, "utf-8");
-const oldClassics = fs.readFileSync(classicsCataloguePath, "utf-8");
+const oldContemporary = fs.readFileSync(contemporaryCataloguePath, "utf-8").split("\n");
+const oldClassics = fs.readFileSync(classicsCataloguePath, "utf-8").split("\n");
 
 const { contemporary, classics } = await getPlaystationGames();
 const 
-    contemporaryText = contemporary.map((x, i) => (i + 1).toString().padStart(4,'0') + '. ' + x).join("\n"), 
-    classicsText = classics.map((x, i) => (i + 1).toString().padStart(4,'0') + '. ' + x).join("\n");
+    contemporaryText = contemporary, 
+    classicsText = classics;
 
 
 await writeFile(contemporaryHtmlPath, getDifferencesHtml(oldContemporary, contemporaryText));
 await writeFile(classicsHtmlPath, getDifferencesHtml(oldClassics, classicsText));
 
-await writeFile(contemporaryCataloguePath, contemporaryText);
-await writeFile(classicsCataloguePath, classicsText);
+await writeFile(contemporaryCataloguePath, contemporaryText.join("\n"));
+await writeFile(classicsCataloguePath, classicsText.join("\n"));

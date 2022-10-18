@@ -1,13 +1,14 @@
 import { getPlaystationGames } from "./ps-dot-com/catalogue.mjs";
 import fs from "fs";
 import _ from "lodash";
-import { diffArrays, diffChars, Change, ArrayChange } from "diff";
+import moment from "moment";
 
 const outputDir = "results";
+const dateStr = moment.utc().format(`D-M-YYYY-HH-MM`)
 const contemporaryCataloguePath = `${outputDir}/games_psplus_games_catalogue.txt`;
 const classicsCataloguePath = `${outputDir}/games_psplus_classics_catalogue.txt`;
-const contemporaryHtmlPath = `${outputDir}/games_psplus_games_catalogue.html`;
-const classicsHtmlPath = `${outputDir}/games_psplus_classics_catalogue.html`;
+const contemporaryHtmlPath = `${outputDir}/games_psplus_games_catalogue_${dateStr}.html`;
+const classicsHtmlPath = `${outputDir}/games_psplus_classics_catalogue_${dateStr}.html`;
 
 
 function getColouredSpans(items: Array<string | null>, color:string = "gray"): Array<{value:string, html:string}>

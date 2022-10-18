@@ -1,7 +1,7 @@
 import { getPageHtml } from "../requests/page-content.mjs";
 import { getDom } from "../dom-parsing/dom.mjs";
 
-const gamesList = "div.tabbed-component[data-component='tabs']";
+const gamesList = "div.tabbed-component > div[data-component='tabs']";
 const gameTitle = "p.txt-style-base";
 
 interface PlayStationGames  
